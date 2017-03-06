@@ -28,11 +28,12 @@ object TestSchema {
 object SelectSpec {
     import Matchers._
     import TestSchema._
+    import Operator._
 
     Query.select[SelectStatement[
       "x" :: "y" :: "z" :: HNil, // Adding unkown column shows compile error: Column "W" does not exist in table "test"
       "test", // Changing this to unknown table shows compile error: Table "foo" does not exist.
-      HNil
+      Relation["x", Equals] :: Relation["y", Equals] :: Relation["z", Contains] :: HNil
     ]]()
 
     // t[Query[]]

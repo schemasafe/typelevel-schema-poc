@@ -33,7 +33,7 @@ sealed trait Relation[ColumnName <: String, Op <: Operator]
 sealed trait Operator
 object Operator {
   sealed trait Equals extends Operator // ==
-  sealed trait In extends Operator // Used for collections only
+  sealed trait Contains extends Operator // Used for collections only
 }
 
 sealed trait ColumnType

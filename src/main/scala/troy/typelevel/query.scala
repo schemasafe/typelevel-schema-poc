@@ -38,14 +38,18 @@ object Query {
       Table <: String,
       Relations <: HList,
       MaybeSelectionTypes <: Result[_, HList],
-      SelectionTypes <: HList
+      SelectionTypes <: HList,
+      MaybeBindMarkerTypes <: Result[_, HList],
+      BindMarkerTypes <: HList
     ]()(
       implicit
       getTableName: GetTableName.Aux[Statement, Table],
       getSelection: GetSelection.Aux[Statement, Selection],
       getRelations: GetRelations.Aux[Statement, Relations],
       tryResolveSelectionType: SelectionTypeResolver.Aux[Table, Selection, MaybeSelectionTypes],
-      query: GetOrElseFail.Aux[MaybeSelectionTypes, SelectionTypes],
-    ) = instance[Statement, HNil, SelectionTypes]
+      selectionTypes: GetOrElseFail.Aux[MaybeSelectionTypes, SelectionTypes],
+      tryResolveBindMarkerTypes: BindMarkerTypesResolver.Aux[Table, Relations, MaybeBindMarkerTypes],
+      bindMarkerTypes: GetOrElseFail.Aux[MaybeBindMarkerTypes, BindMarkerTypes],
+    ) = instance[Statement, BindMarkerTypes, SelectionTypes]
   }
 }

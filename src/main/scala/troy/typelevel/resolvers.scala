@@ -104,3 +104,73 @@ trait SelectionTypeResolverLowPriorityImplicits {
 
   // implicit def hConsInstance[T <: String : DoesTableExists, C <: String : DoesColumnExists, ] = instance[T, HNil, HNil]
 }
+
+trait BindMarkerTypesResolver[T <: String, Relations <: HList /* of Relation[_] */] {
+  type Out <: Result[_, HList] // HList of ColumnType
+}
+object BindMarkerTypesResolver extends BindMarkerTypesResolverLowPriorityImplicits {
+  @implicitNotFound("Bug alert: BindMarkerTypesResolver.Aux[${T}, ${Rs}, ${O}] was supposed to be auto-derived.")
+  type Aux[T <: String, Rs <: HList, O <: Result[_, HList]] = BindMarkerTypesResolver[T, Rs] { type Out = O }
+
+  def instance[T <: String, Rs <: HList, O <: Result[_, HList]]: Aux[T, Rs, O] =
+    new BindMarkerTypesResolver[T, Rs] { override type Out = O }
+
+  implicit def hNilInstanceSuccess[T <: String](implicit tableExists: DoesTableExists.Aux[T, Success[Unit]]) =
+    instance[T, HNil, Success[HNil]]
+
+  implicit def hConsNativeInstanceSuccess[T <: String, HHeadColumnName <: String, HHeadColumnType <: ColumnType.Native, HTail <: HList, HTailColumnTypes <: HList](
+    implicit
+    tableExists: DoesTableExists.Aux[T, Success[Unit]],
+    hConsType: ColumnHasType.Aux[T, HHeadColumnName, HHeadColumnType],
+    hTail: Aux[T, HTail, Success[HTailColumnTypes]],
+  ) = instance[T, Relation[HHeadColumnName, Operator.Equals] :: HTail, Success[HHeadColumnType :: HTailColumnTypes]]
+
+  implicit def hConsListInstanceSuccess[T <: String, HHeadColumnName <: String, HHeadListTypeParam <: ColumnType.Native, HTail <: HList, HTailColumnTypes <: HList](
+    implicit
+    tableExists: DoesTableExists.Aux[T, Success[Unit]],
+    hConsType: ColumnHasType.Aux[T, HHeadColumnName, ColumnType.List[HHeadListTypeParam]],
+    hTail: Aux[T, HTail, Success[HTailColumnTypes]],
+  ) = instance[T, Relation[HHeadColumnName, Operator.Contains] :: HTail, Success[HHeadListTypeParam :: HTailColumnTypes]]
+
+  implicit def hConsNativeContainsInstanceFailure[T <: String, HHeadColumnName <: String, HHeadColumnType <: ColumnType.Native, HTail <: HList, HTailColumnTypes <: HList](
+    implicit
+    tableExists: DoesTableExists.Aux[T, Success[Unit]],
+    hConsType: ColumnHasType.Aux[T, HHeadColumnName, HHeadColumnType],
+    hTail: Aux[T, HTail, Success[HTailColumnTypes]],
+  ) = instance[T, Relation[HHeadColumnName, Operator.Contains] :: HTail, Failure[NativeColumnDoesNotSupportContainsOperator[T, HHeadColumnName]]]
+
+  implicit def hConsListCollectionInstanceFailure[T <: String, HHeadColumnName <: String, HHeadListTypeParam <: ColumnType.Native, HTail <: HList, HTailColumnTypes <: HList](
+    implicit
+    tableExists: DoesTableExists.Aux[T, Success[Unit]],
+    hConsType: ColumnHasType.Aux[T, HHeadColumnName, ColumnType.List[HHeadListTypeParam]],
+    hTail: Aux[T, HTail, Success[HTailColumnTypes]],
+  ) = instance[T, Relation[HHeadColumnName, Operator.Equals] :: HTail, Failure[CollectionColumnDoesNotSupportEqualsOperator[T, HHeadColumnName]]]
+}
+
+trait BindMarkerTypesResolverLowPriorityImplicits {
+  import BindMarkerTypesResolver.{instance, Aux}
+
+  implicit def hConsColumnNotFoundInstanceFailure[T <: String, HHeadColumnName <: String, Op <: Operator, HTail <: HList, HTailColumnTypes <: HList](
+    implicit
+    tableExists: DoesTableExists.Aux[T, Success[Unit]],
+    hTail: Aux[T, HTail, Success[HTailColumnTypes]],
+  ) = instance[T, Relation[HHeadColumnName, Op] :: HTail, Failure[ColumnDoesNotExist[T, HHeadColumnName]]]
+
+  // implicit def hConsPropagateTailFailure[T <: String, HHead <: String, HTail <: HList, E <: Error[_]](
+  //   implicit
+  //   tableExists: DoesTableExists.Aux[T, Success[Unit]],
+  //   hTail: Aux[T, HTail, Failure[E]],
+  // ) = instance[T, HHead :: HTail, Failure[E]]
+
+  implicit def hConsNativePropagateTailFailure[T <: String, HHeadColumnName <: String, HHeadColumnType <: ColumnType.Native, HTail <: HList, E <: Error[_]](
+    implicit
+    tableExists: DoesTableExists.Aux[T, Success[Unit]],
+    hConsType: ColumnHasType.Aux[T, HHeadColumnName, HHeadColumnType],
+    hTail: Aux[T, HTail, Failure[E]],
+  ) = instance[T, Relation[HHeadColumnName, Operator.Equals] :: HTail, Failure[E]]
+
+  implicit def hNilInstanceFailure[T <: String](implicit tableDoesNotExist: DoesTableExists.Aux[T, Failure[TableDoesNotExist[T]]]) =
+    instance[T, HNil, Failure[TableDoesNotExist[T]]]
+
+  // implicit def hConsInstance[T <: String : DoesTableExists, C <: String : DoesColumnExists, ] = instance[T, HNil, HNil]
+}

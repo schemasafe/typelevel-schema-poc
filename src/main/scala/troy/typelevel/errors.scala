@@ -82,3 +82,5 @@ object Show {
 
 class TableDoesNotExist[T: ValueOf] extends Error["Table " :: T :: " does not exist." :: HNil]
 class ColumnDoesNotExist[T: ValueOf, C: ValueOf] extends Error["Column " :: C :: " does not exist in table " :: T :: HNil]
+class NativeColumnDoesNotSupportContainsOperator[T: ValueOf, C: ValueOf] extends Error["Column " :: C :: " in table " :: T :: " has native type, that does not support contains operator " ::  HNil]
+class CollectionColumnDoesNotSupportEqualsOperator[T: ValueOf, C: ValueOf] extends Error["Column " :: C :: " in table " :: T :: " has collection type, that does not support == operator " ::  HNil]
