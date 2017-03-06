@@ -67,6 +67,7 @@ trait SelectionTypeResolver[T <: String, Selection <: HList] {
   type Out <: Result[_, HList] // HList of ColumnType
 }
 object SelectionTypeResolver extends SelectionTypeResolverLowPriorityImplicits {
+  @implicitNotFound("Bug alert: SelectionTypeResolver.Aux[${T}, ${S}, ${O}] was supposed to be auto-derived.")
   type Aux[T <: String, S <: HList, O <: Result[_, HList]] = SelectionTypeResolver[T, S] { type Out = O }
 
   def instance[T <: String, S <: HList, O <: Result[_, HList]]: Aux[T, S, O] =
@@ -74,11 +75,32 @@ object SelectionTypeResolver extends SelectionTypeResolverLowPriorityImplicits {
 
   implicit def hNilInstanceSuccess[T <: String](implicit tableExists: DoesTableExists.Aux[T, Success[Unit]]) =
     instance[T, HNil, Success[HNil]]
+
+  implicit def hConsInstanceSuccess[T <: String, HHead <: String, HTail <: HList, HTailColumnTypes <: HList](
+    implicit
+    tableExists: DoesTableExists.Aux[T, Success[Unit]],
+    hConsType: ColumnHasType[T, HHead],
+    hTail: Aux[T, HTail, Success[HTailColumnTypes]],
+  ) = instance[T, HHead :: HTail, Success[hConsType.T :: HTailColumnTypes]]
 }
 
 trait SelectionTypeResolverLowPriorityImplicits {
+  import SelectionTypeResolver.{instance, Aux}
+
+  implicit def hConsInstanceFailure[T <: String, HHead <: String, HTail <: HList, HTailColumnTypes <: HList](
+    implicit
+    tableExists: DoesTableExists.Aux[T, Success[Unit]],
+    hTail: Aux[T, HTail, Success[HTailColumnTypes]],
+  ) = instance[T, HHead :: HTail, Failure[ColumnDoesNotExist[T, HHead]]]
+
+  implicit def hConsPropagateTailFailure[T <: String, HHead <: String, HTail <: HList, E <: Error[_]](
+    implicit
+    tableExists: DoesTableExists.Aux[T, Success[Unit]],
+    hTail: Aux[T, HTail, Failure[E]],
+  ) = instance[T, HHead :: HTail, Failure[E]]
+
   implicit def hNilInstanceFailure[T <: String](implicit tableDoesNotExist: DoesTableExists.Aux[T, Failure[TableDoesNotExist[T]]]) =
-    SelectionTypeResolver.instance[T, HNil, Failure[TableDoesNotExist[T]]]
+    instance[T, HNil, Failure[TableDoesNotExist[T]]]
 
   // implicit def hConsInstance[T <: String : DoesTableExists, C <: String : DoesColumnExists, ] = instance[T, HNil, HNil]
 }

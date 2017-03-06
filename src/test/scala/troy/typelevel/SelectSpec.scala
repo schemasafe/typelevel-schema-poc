@@ -30,8 +30,8 @@ object SelectSpec {
     import TestSchema._
 
     Query.select[SelectStatement[
-      HNil,
-      "test", // Changing this to any other string should show compile error: Table "foo" does not exist.
+      "x" :: "y" :: "z" :: HNil, // Adding unkown column shows compile error: Column "W" does not exist in table "test"
+      "test", // Changing this to unknown table shows compile error: Table "foo" does not exist.
       HNil
     ]]()
 
