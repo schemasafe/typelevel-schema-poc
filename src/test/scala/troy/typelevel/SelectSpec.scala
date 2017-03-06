@@ -17,6 +17,7 @@
  package troy.typelevel
 
 import shapeless._
+import shapeless.test.illTyped
 
 object TestSchema {
   implicit val fact1 = TableExists.instance["test"]
@@ -31,10 +32,53 @@ object SelectSpec {
     import Operator._
 
     Query.select[SelectStatement[
-      "x" :: "y" :: "z" :: HNil, // Adding unkown column shows compile error: Column "W" does not exist in table "test"
-      "test", // Changing this to unknown table shows compile error: Table "foo" does not exist.
+      "x" :: "y" :: "z" :: HNil,
+      "test",
       Relation["x", Equals] :: Relation["y", Equals] :: Relation["z", Contains] :: HNil
     ]]()
 
-    // t[Query[]]
+    // Shows compile error: Column "W" does not exist in table "test"
+    illTyped("""
+      Query.select[SelectStatement[
+        "x" :: "y" :: "W" :: HNil, // Adding unkown column shows compile error: Column "W" does not exist in table "test"
+        "test",
+        Relation["x", Equals] :: Relation["y", Equals] :: Relation["z", Contains] :: HNil
+      ]]()
+    """)
+
+    // Shows compile error: Table "foo" does not exist.
+    illTyped("""
+      Query.select[SelectStatement[
+        "x" :: "y" :: "z" :: HNil,
+        "foo",
+        Relation["x", Equals] :: Relation["y", Equals] :: Relation["z", Contains] :: HNil
+      ]]()
+    """)
+
+    // Shows compile error: Column "W" does not exist in table "test"
+    illTyped("""
+      Query.select[SelectStatement[
+        "x" :: "y" :: "z" :: HNil,
+        "test",
+        Relation["x", Equals] :: Relation["y", Equals] :: Relation["W", Contains] :: HNil
+      ]]()
+    """)
+
+    // Shows compile error: Column "x" in table "test" has native type, that does not support contains operator
+    illTyped("""
+      Query.select[SelectStatement[
+        "x" :: "y" :: "z" :: HNil,
+        "test",
+        Relation["x", Contains] :: Relation["y", Equals] :: Relation["z", Contains] :: HNil
+      ]]()
+    """)
+
+    // Shows compile error: Column "z" in table "test" has collection type, that does not support == operator
+    illTyped("""
+      Query.select[SelectStatement[
+        "x" :: "y" :: "z" :: HNil,
+        "test",
+        Relation["x", Equals] :: Relation["y", Equals] :: Relation["z", Equals] :: HNil
+      ]]()
+    """)
 }
