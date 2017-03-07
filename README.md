@@ -12,3 +12,10 @@ Using Macros, the CQL strings above gets expanded into:
 # How this works?
 Type level programming...
 TODO: Explain basic type classes
+
+# TODO
+  - Parse Raw SELECT Queries (FastParse) generating ScalaMeta trees
+  - Parse CREATE TABLE statement into intermediate representation
+  - Generate facts about schema as ScalaMeta trees
+  - Execute Queries (using raw query provided by user)
+  - Generate the query from the type AST
