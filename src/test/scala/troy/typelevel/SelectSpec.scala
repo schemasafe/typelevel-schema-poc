@@ -26,12 +26,15 @@ object TestSchema {
   implicit val fact4 = ColumnHasType.instance["test", "z", ColumnType.List[ColumnType.Text]]
 }
 
+case class Input(x: String, y: Int, zItem: String)
+case class Output(x: String, y: Int, z: Seq[String])
+
 object SelectSpec {
     import Matchers._
     import TestSchema._
     import Operator._
 
-    Query.select[SelectStatement[
+    Query.select[Input, Output, SelectStatement[
       "x" :: "y" :: "z" :: HNil,
       "test",
       Relation["x", Equals] :: Relation["y", Equals] :: Relation["z", Contains] :: HNil
@@ -39,7 +42,7 @@ object SelectSpec {
 
     // Shows compile error: Column "W" does not exist in table "test"
     illTyped("""
-      Query.select[SelectStatement[
+      Query.select[Input, Output, SelectStatement[
         "x" :: "y" :: "W" :: HNil, // Adding unkown column shows compile error: Column "W" does not exist in table "test"
         "test",
         Relation["x", Equals] :: Relation["y", Equals] :: Relation["z", Contains] :: HNil
@@ -48,7 +51,7 @@ object SelectSpec {
 
     // Shows compile error: Table "foo" does not exist.
     illTyped("""
-      Query.select[SelectStatement[
+      Query.select[Input, Output, SelectStatement[
         "x" :: "y" :: "z" :: HNil,
         "foo",
         Relation["x", Equals] :: Relation["y", Equals] :: Relation["z", Contains] :: HNil
@@ -57,7 +60,7 @@ object SelectSpec {
 
     // Shows compile error: Column "W" does not exist in table "test"
     illTyped("""
-      Query.select[SelectStatement[
+      Query.select[Input, Output, SelectStatement[
         "x" :: "y" :: "z" :: HNil,
         "test",
         Relation["x", Equals] :: Relation["y", Equals] :: Relation["W", Contains] :: HNil
@@ -66,7 +69,7 @@ object SelectSpec {
 
     // Shows compile error: Column "x" in table "test" has native type, that does not support contains operator
     illTyped("""
-      Query.select[SelectStatement[
+      Query.select[Input, Output, SelectStatement[
         "x" :: "y" :: "z" :: HNil,
         "test",
         Relation["x", Contains] :: Relation["y", Equals] :: Relation["z", Contains] :: HNil
@@ -75,7 +78,7 @@ object SelectSpec {
 
     // Shows compile error: Column "z" in table "test" has collection type, that does not support == operator
     illTyped("""
-      Query.select[SelectStatement[
+      Query.select[Input, Output, SelectStatement[
         "x" :: "y" :: "z" :: HNil,
         "test",
         Relation["x", Equals] :: Relation["y", Equals] :: Relation["z", Equals] :: HNil

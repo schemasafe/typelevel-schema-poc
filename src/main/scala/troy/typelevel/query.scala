@@ -17,30 +17,37 @@
  package troy.typelevel
 
 import scala.annotation.implicitNotFound
-
 import shapeless._
 
+import scala.concurrent.Future
+
 trait Query[S <: DataManipulationStatement] {
- type Input <: HList
- type Output <: HList
+  type Input // case class
+  type Output // case class
+
+  def apply(input: Input): Future[Output]
 }
 object Query {
 
-  def instance[S <: DataManipulationStatement, I <: HList, O <: HList] =
+  def instance[I, O, S <: DataManipulationStatement](impl: I => Future[O]) =
     new Query[S] {
       override type Input = I
       override type Output = O
+
+      override def apply(input: I): Future[O] = impl(input)
     }
 
-  def select[Statement <: SelectStatement[_, _, _]] = new {
+  def select[Input, Output, Statement <: SelectStatement[_, _, _]] = new {
     def apply[
       Selection <: HList,
       Table <: String,
       Relations <: HList,
       MaybeSelectionTypes <: Result[_, HList],
-      SelectionTypes <: HList,
+      SelectionTypes <: HList, // HList of ColumnType
       MaybeBindMarkerTypes <: Result[_, HList],
-      BindMarkerTypes <: HList
+      BindMarkerTypes <: HList, // HList of ColumnType
+      GenericInput <: HList,
+      GenericOutput <: HList
     ]()(
       implicit
       getTableName: GetTableName.Aux[Statement, Table],
@@ -50,6 +57,18 @@ object Query {
       selectionTypes: GetOrElseFail.Aux[MaybeSelectionTypes, SelectionTypes],
       tryResolveBindMarkerTypes: BindMarkerTypesResolver.Aux[Table, Relations, MaybeBindMarkerTypes],
       bindMarkerTypes: GetOrElseFail.Aux[MaybeBindMarkerTypes, BindMarkerTypes],
-    ) = instance[Statement, BindMarkerTypes, SelectionTypes]
+      inputGeneric: Generic.Aux[Input, GenericInput],
+      outputGeneric: Generic.Aux[Output, GenericOutput],
+      // GenericInput should be matched with BindMarkerTypes
+      // GenericOutput should be matched with SelectionTypes
+//      statementPreparer: ???,
+      inputBinder: StatementBinder[GenericInput, BindMarkerTypes]
+//      rowParser: ???
+    ) = instance[Input, Output, Statement] { input =>
+      val genInput = inputGeneric.to(input)
+      val genOutput: GenericOutput = ???
+
+      Future.successful(outputGeneric.from(genOutput))
+    }
   }
 }
