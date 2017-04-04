@@ -20,18 +20,15 @@ import com.datastax.driver.core._
 import shapeless._
 
 trait StatementBinder[GenericInput <: HList, BindMarkerTypes <: HList] {
-  protected def bindMarkerCount: Int
-
-  def bind(statement: BoundStatement, input: GenericInput): BoundStatement
+  def bind(statement: BoundStatement, input: GenericInput, index: Int): BoundStatement
 
   def bind(statement: PreparedStatement, input: GenericInput): BoundStatement =
-    bind(statement.bind(), input)
+    bind(statement.bind(), input, 0)
 }
 
 object StatementBinder {
   implicit def hNilInstance = new StatementBinder[HNil, HNil] {
-    override protected val bindMarkerCount: Int = 0
-    override def bind(statement: BoundStatement, input: HNil): BoundStatement = statement
+    override def bind(statement: BoundStatement, input: HNil, index: Int): BoundStatement = statement
   }
 
   implicit def hConsInstance[IH, IT <: HList, BH <: ColumnType, BT <: HList](
@@ -39,10 +36,8 @@ object StatementBinder {
     headCodec: TroyCodec[BH, IH],
     tailBinder: StatementBinder[IT, BT]
   ) = new StatementBinder[IH :: IT, BH :: BT] {
-    override protected val bindMarkerCount: Int = tailBinder.bindMarkerCount + 1
-    override def bind(statement: BoundStatement, input: IH :: IT): BoundStatement = {
-      val index = bindMarkerCount - 1
-      val tailBoundStatement = tailBinder.bind(statement, input.tail)
+    override def bind(statement: BoundStatement, input: IH :: IT, index: Int): BoundStatement = {
+      val tailBoundStatement = tailBinder.bind(statement, input.tail, index + 1)
       headCodec.set(tailBoundStatement, index, input.head)
     }
   }
@@ -51,18 +46,12 @@ object StatementBinder {
 
 
 trait RowParser[GenericOutput <: HList, SelectionTypes <: HList] {
-  protected def columnCount: Int
-  def parse(row: Row): GenericOutput
+  def parse(row: Row): GenericOutput = parse(row, 0)
+  def parse(row: Row, index: Int): GenericOutput
 }
 object RowParser {
-  def instance[O <: HList, S <: HList](count: Int)(f: Row => O) = new RowParser[O, S] {
-    override protected val columnCount: Int = count
-    override def parse(row: Row): O = f(row)
-  }
-
   implicit def hNilInstance = new RowParser[HNil, HNil] {
-    override protected val columnCount: Int = 0
-    override def parse(row: Row) = HNil
+    override def parse(row: Row, index: Int) = HNil
   }
 
   implicit def hConsInstance[OH, OT <: HList, SH <: ColumnType, ST <: HList](
@@ -70,10 +59,8 @@ object RowParser {
     headCodec: TroyCodec[SH, OH],
     tailParser: RowParser[OT, ST]
   ) = new RowParser[OH :: OT, SH :: ST] {
-    override protected val columnCount: Int = tailParser.columnCount + 1
-    override def parse(row: Row) = {
-      val index = columnCount - 1
-      headCodec.get(row, index) :: tailParser.parse(row)
+    override def parse(row: Row, index: Int) = {
+      headCodec.get(row, index) :: tailParser.parse(row, index + 1)
     }
   }
 }

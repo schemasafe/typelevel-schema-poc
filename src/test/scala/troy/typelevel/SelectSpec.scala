@@ -16,6 +16,7 @@
 
  package troy.typelevel
 
+import com.datastax.driver.core.Session
 import shapeless._
 import shapeless.test.illTyped
 
@@ -34,11 +35,13 @@ object SelectSpec {
     import TestSchema._
     import Operator._
 
+  implicit val session: Session = ???
+
     Query.select[Input, Output, SelectStatement[
       "x" :: "y" :: "z" :: HNil,
       "test",
       Relation["x", Equals] :: Relation["y", Equals] :: Relation["z", Contains] :: HNil
-    ]]()
+    ]]("SELECT x, y, z from test where x = ? AND y = ? AND z CONTAINS ?")
 
     // Shows compile error: Column "W" does not exist in table "test"
     illTyped("""
@@ -46,7 +49,7 @@ object SelectSpec {
         "x" :: "y" :: "W" :: HNil, // Adding unkown column shows compile error: Column "W" does not exist in table "test"
         "test",
         Relation["x", Equals] :: Relation["y", Equals] :: Relation["z", Contains] :: HNil
-      ]]()
+      ]]("SELECT x, y, z from test where x = ? AND y = ? AND z CONTAINS ?")
     """)
 
     // Shows compile error: Table "foo" does not exist.
@@ -55,7 +58,7 @@ object SelectSpec {
         "x" :: "y" :: "z" :: HNil,
         "foo",
         Relation["x", Equals] :: Relation["y", Equals] :: Relation["z", Contains] :: HNil
-      ]]()
+      ]]("SELECT x, y, z from test where x = ? AND y = ? AND z CONTAINS ?")
     """)
 
     // Shows compile error: Column "W" does not exist in table "test"
@@ -64,7 +67,7 @@ object SelectSpec {
         "x" :: "y" :: "z" :: HNil,
         "test",
         Relation["x", Equals] :: Relation["y", Equals] :: Relation["W", Contains] :: HNil
-      ]]()
+      ]]("SELECT x, y, z from test where x = ? AND y = ? AND z CONTAINS ?")
     """)
 
     // Shows compile error: Column "x" in table "test" has native type, that does not support contains operator
@@ -73,7 +76,7 @@ object SelectSpec {
         "x" :: "y" :: "z" :: HNil,
         "test",
         Relation["x", Contains] :: Relation["y", Equals] :: Relation["z", Contains] :: HNil
-      ]]()
+      ]]("SELECT x, y, z from test where x = ? AND y = ? AND z CONTAINS ?")
     """)
 
     // Shows compile error: Column "z" in table "test" has collection type, that does not support == operator
@@ -82,6 +85,6 @@ object SelectSpec {
         "x" :: "y" :: "z" :: HNil,
         "test",
         Relation["x", Equals] :: Relation["y", Equals] :: Relation["z", Equals] :: HNil
-      ]]()
+      ]]("SELECT x, y, z from test where x = ? AND y = ? AND z CONTAINS ?")
     """)
 }
