@@ -59,11 +59,9 @@ object Query {
       bindMarkerTypes: GetOrElseFail.Aux[MaybeBindMarkerTypes, BindMarkerTypes],
       inputGeneric: Generic.Aux[Input, GenericInput],
       outputGeneric: Generic.Aux[Output, GenericOutput],
-      // GenericInput should be matched with BindMarkerTypes
-      // GenericOutput should be matched with SelectionTypes
 //      statementPreparer: ???,
-      inputBinder: StatementBinder[GenericInput, BindMarkerTypes]
-//      rowParser: ???
+      inputBinder: StatementBinder[GenericInput, BindMarkerTypes],
+      rowParser: RowParser[GenericOutput, SelectionTypes]
     ) = instance[Input, Output, Statement] { input =>
       val genInput = inputGeneric.to(input)
       val genOutput: GenericOutput = ???

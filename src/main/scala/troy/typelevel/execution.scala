@@ -29,11 +29,6 @@ trait StatementBinder[GenericInput <: HList, BindMarkerTypes <: HList] {
 }
 
 object StatementBinder {
-  def instance[I <: HList, BM <: HList](bmCount: Int)(f: I => BoundStatement => BoundStatement) = new StatementBinder[I, BM] {
-    override def bind(statement: BoundStatement, input: I): BoundStatement = f(input)(statement)
-    override protected val bindMarkerCount: Int = bmCount
-  }
-
   implicit def hNilInstance = new StatementBinder[HNil, HNil] {
     override protected val bindMarkerCount: Int = 0
     override def bind(statement: BoundStatement, input: HNil): BoundStatement = statement
@@ -56,7 +51,31 @@ object StatementBinder {
 
 
 trait RowParser[GenericOutput <: HList, SelectionTypes <: HList] {
+  protected def columnCount: Int
   def parse(row: Row): GenericOutput
+}
+object RowParser {
+  def instance[O <: HList, S <: HList](count: Int)(f: Row => O) = new RowParser[O, S] {
+    override protected val columnCount: Int = count
+    override def parse(row: Row): O = f(row)
+  }
+
+  implicit def hNilInstance = new RowParser[HNil, HNil] {
+    override protected val columnCount: Int = 0
+    override def parse(row: Row) = HNil
+  }
+
+  implicit def hConsInstance[OH, OT <: HList, SH <: ColumnType, ST <: HList](
+    implicit
+    headCodec: TroyCodec[SH, OH],
+    tailParser: RowParser[OT, ST]
+  ) = new RowParser[OH :: OT, SH :: ST] {
+    override protected val columnCount: Int = tailParser.columnCount + 1
+    override def parse(row: Row) = {
+      val index = columnCount - 1
+      headCodec.get(row, index) :: tailParser.parse(row)
+    }
+  }
 }
 
 
