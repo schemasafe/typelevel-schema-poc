@@ -36,12 +36,21 @@ object Operator {
   sealed trait Contains extends Operator // Used for collections only
 }
 
+/**
+  * Represents ColumnType in the typelevel
+  * Instances are used by macros to parse schema files
+  */
 sealed trait ColumnType
 object ColumnType {
   sealed trait Native extends ColumnType
+
   sealed trait Text extends Native
+  object Text extends Text
+
+
   sealed trait Int extends Native
+  object Int extends Int
 
   trait Collection extends ColumnType
-  trait List[T <: Native] extends Collection
+  final case class List[T <: Native](t: T) extends Collection
 }
