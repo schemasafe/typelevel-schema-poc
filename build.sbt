@@ -7,5 +7,7 @@ scalacOptions := Seq("-Yliteral-types")
 libraryDependencies ++= Seq(
   "com.chuusai" %% "shapeless" % "2.3.2",
   "org.scala-lang" % "scala-reflect" % "2.12.1",
-  "com.datastax.cassandra" % "cassandra-driver-core" % "3.0.0"
+  "com.datastax.cassandra" % "cassandra-driver-core" % "3.0.0",
+  "com.lihaoyi" %% "fastparse" % "0.4.2",
+  "org.scalameta" %% "scalameta" % "1.6.0"
 )
