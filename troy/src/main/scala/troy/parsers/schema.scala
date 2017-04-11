@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package troy.macros
+package troy.parsers
 
 import troy.typelevel.ColumnType
 
@@ -21,20 +21,20 @@ case class Schema(tables: Map[String, Table]) extends AnyVal
 case class Table(columns: Map[String, ColumnType]) extends AnyVal
 
 object SchemaParser {
-  type ParseResult[T] = Either[String, T] // Replace with FastParse
+  type Parser[T] = fastparse.core.Parser[T,Char,String]
 
-  def columnType: ParseResult[ColumnType] = ???
-  def column: ParseResult[(String, ColumnType)] = ???
-  def columns: ParseResult[Seq[(String, ColumnType)]] = ???
-  def table: ParseResult[Table] = ???
-  def tables: ParseResult[Seq[Table]] = ???
-  def schema: ParseResult[Schema] = ???
+  def columnType: Parser[ColumnType] = ???
+  def column: Parser[(String, ColumnType)] = ???
+  def columns: Parser[Seq[(String, ColumnType)]] = ???
+  def table: Parser[Table] = ???
+  def tables: Parser[Seq[Table]] = ???
+  def schema: Parser[Schema] = ???
 
   def parse(schema: String): Either[String, Schema] = ???
 }
 
 object SchemaFactsGenerator {
-  type Fact = Any // Scala.meta `Type`. Containing code similar to q"implicit val fact1 = ..."
+  type Fact = scala.meta.Type // Containing code similar to q"implicit val fact1 = ..."
 
   def generate(schema: Schema): Seq[Fact] = ???
     // Output similar to
@@ -48,7 +48,7 @@ object SchemaFactsGenerator {
 }
 
 object Schema {
-  type Type = Any // Scala.meta
+  type Type = scala.meta.Type
 
   def parseToTypelevel(schema: String): Either[String, Seq[Type]] =
     SchemaParser.parse(schema).map(SchemaFactsGenerator.generate)

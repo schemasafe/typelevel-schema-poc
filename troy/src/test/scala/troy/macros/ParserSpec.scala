@@ -1,9 +1,9 @@
-package troy.macros
+package troy.parsers
 import scala.meta._
 
 object ParserSpec extends App {
 
-  val query = Parser.parseQuery("SELECT x, y, z from test where x = ? AND y = ? AND z CONTAINS ?")
+  val query = QueryParser.parseQuery("SELECT x, y, z from test where x = ? AND y = ? AND z CONTAINS ?")
   val typsTree = query.right.get
 
   assert(typsTree.children(0).syntax == t"SelectStatement".syntax)
