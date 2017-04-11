@@ -1,9 +1,7 @@
-package troy.typelevel
-
+package troy.macros
 import scala.meta._
 
 object ParserSpec extends App {
-  import Parser.parseQuery
 
   val query = Parser.parseQuery("SELECT x, y, z from test where x = ? AND y = ? AND z CONTAINS ?")
   val typsTree = query.right.get
