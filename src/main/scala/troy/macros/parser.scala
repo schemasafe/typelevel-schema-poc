@@ -1,5 +1,4 @@
-package troy.typelevel
-
+package troy.macros
 import scala.meta._
 
 object Parser {
