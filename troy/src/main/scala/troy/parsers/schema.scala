@@ -15,6 +15,7 @@
  */
 package troy.parsers
 
+import scala.meta._
 import troy.typelevel.ColumnType
 
 case class Schema(tables: Map[String, Table]) extends AnyVal
@@ -33,23 +34,50 @@ object SchemaParser {
   def parse(schema: String): Either[String, Schema] = ???
 }
 
+sealed trait Fact
+final case class TableExistsFact(table: String) extends Fact
+final case class ColumnHasTypeFact(table: String, column: String, ctype: ColumnType) extends Fact
+
 object SchemaFactsGenerator {
-  type Fact = scala.meta.Type // Containing code similar to q"implicit val fact1 = ..."
-
   def generate(schema: Schema): Seq[Fact] = ???
-    // Output similar to
-    // Seq(
-    //   q"""implicit val fact1 = TableExists.instance["test"]""",
-    //   q"""implicit val fact2 = ColumnHasType.instance["test", "x", ColumnType.Text]""",
-    //   q"""implicit val fact3 = ColumnHasType.instance["test", "y", ColumnType.Int]""",
-    //   q"""implicit val fact4 = ColumnHasType.instance["test", "z", ColumnType.List[ColumnType.Text]]"""
-    // )
-
 }
 
 object Schema {
-  type Type = scala.meta.Type
+  // Output similar to
+  // Seq(
+  //   q"""implicit val fact1 = TableExists.instance["test"]""",
+  //   q"""implicit val fact2 = ColumnHasType.instance["test", "x", ColumnType.Text]""",
+  //   q"""implicit val fact3 = ColumnHasType.instance["test", "y", ColumnType.Int]""",
+  //   q"""implicit val fact4 = ColumnHasType.instance["test", "z", ColumnType.List[ColumnType.Text]]"""
+  // )
+  def parseToTypelevel(schema: String): Either[String, Seq[Stat]] =
+    SchemaParser.parse(schema).map(SchemaFactsGenerator.generate).map(_
+      .zipWithIndex
+      .map {
+        case (TableExistsFact(table), i) =>
+          constructFact(i, q"TableExists.instance[${literal(table)}]")
+        case (ColumnHasTypeFact(table, column, ctype), i) =>
+          constructFact(i, q"ColumnHasType.instance[${literal(table)}, ${literal(column)}, ${ctname(ctype)}]")
+      }
+    )
 
-  def parseToTypelevel(schema: String): Either[String, Seq[Type]] =
-    SchemaParser.parse(schema).map(SchemaFactsGenerator.generate)
+    def constructFact(i: Int, value: Term) = {
+      val termName = Pat.Var.Term(Term.Name(s"fact$i"))
+      q"implicit val $termName = $value"
+    }
+
+    def literal(str: String): Type.Name = tname(quoted(str))
+
+    def quoted(str: String): String = s"""\"$str\""""
+
+    def tname(str: String): Type.Name = Type.Name(str)
+
+    def ctname(ctype: ColumnType): Type.Name =
+      tname("ColumnType." + (ctype match {
+        case ColumnType.Text => "Text"
+        case ColumnType.Int => "Int"
+        case ColumnType.List(inner) => s"List[${ctname(inner)}]"
+      }))
+
+
 }
