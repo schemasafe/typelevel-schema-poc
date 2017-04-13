@@ -14,24 +14,50 @@
  * limitations under the License.
  */
 package troy.parsers
-
-import scala.meta._
 import troy.typelevel.ColumnType
 
 case class Schema(tables: Map[String, Table]) extends AnyVal
 case class Table(columns: Map[String, ColumnType]) extends AnyVal
 
+case class NamedFunction[T, V](f: T => V, name: String) extends (T => V){
+  def apply(t: T) = f(t)
+  override def toString() = name
+
+}
+
 object SchemaParser {
-  type Parser[T] = fastparse.core.Parser[T,Char,String]
+  import fastparse.all._
 
-  def columnType: Parser[ColumnType] = ???
-  def column: Parser[(String, ColumnType)] = ???
-  def columns: Parser[Seq[(String, ColumnType)]] = ???
-  def table: Parser[Table] = ???
-  def tables: Parser[Seq[Table]] = ???
-  def schema: Parser[Schema] = ???
+  val Whitespace = NamedFunction(" \r\n".contains(_: Char), "Whitespace")
+  val space = P( CharsWhile(Whitespace).? )
 
-  def parse(schema: String): Either[String, Schema] = ???
+  val identifier = P(CharIn('a' to 'z', 'A' to 'Z', '0' to '9', "_").rep.! ~ space)
+
+  val textColumnType = P("text").map(_ => ColumnType.Text)
+  val intColumnType = P("int").map(_ => ColumnType.Int)
+  val nativeColumnType = P(textColumnType | intColumnType)
+  val listColumnType = P("list<" ~ nativeColumnType ~ ">").map(ColumnType.List.apply)
+
+  val columnType = P( (nativeColumnType | listColumnType) ~ space)
+
+  val column = P(identifier ~ columnType ~ "PRIMARY KEY".? )
+
+  val coma = P("," ~ space)
+  val columns = P("(" ~ space ~ column.rep(sep=coma) ~ space ~ ")")
+    .map(_.toMap).map(Table)
+
+  val table = P( IgnoreCase("CREATE TABLE ") ~ identifier ~ columns ~ ";")
+
+  val schema = P(table.rep(sep=space)).map(_.toMap).map(Schema.apply)
+
+  def parse(input: String): Either[String, Schema] = {
+    val parseInput = schema.parse(input)
+
+    parseInput match {
+      case Parsed.Success(r, _) => Right(r)
+      case Parsed.Failure(_, _, extra) => Left(extra.traced.trace)
+    }
+  }
 }
 
 sealed trait Fact
@@ -43,6 +69,8 @@ object SchemaFactsGenerator {
 }
 
 object Schema {
+  import scala.meta._
+
   // Output similar to
   // Seq(
   //   q"""implicit val fact1 = TableExists.instance["test"]""",

@@ -51,6 +51,6 @@ object ColumnType {
   sealed trait Int extends Native
   object Int extends Int
 
-  trait Collection extends ColumnType
+  sealed trait Collection extends ColumnType
   final case class List[T <: Native](t: T) extends Collection
 }
