@@ -9,15 +9,20 @@ You write your code using CQL strings
 Using Macros, the CQL strings above gets expanded into:
 ![generated code](read-me-pic-2.png)
 
+# Error messages
+At compile time, you get error messages if you query is wrong
+```
+[error] <macro>:5: Table "lol" does not exist.
+```
+```
+[error] <macro>:5: Column "foobar" does not exist in table "posts"
+```
+```
+[error] <macro>:5: Row is not compatible with Output structure
+```
+```
+[error] <macro>:5: Bind Markers are not compatible with Input structure
+```
+
 # Demo
 [See it working here](demo/src/main/scala/Example.scala), you'll need running Cassandra to run the demo, but it compiles without connecting it.
-# How this works?
-Type level programming...
-TODO: Explain basic type classes
-
-# TODO
-  - Parse Raw SELECT Queries (FastParse) generating ScalaMeta trees
-  - Parse CREATE TABLE statement into intermediate representation
-  - Generate facts about schema as ScalaMeta trees
-  - Execute Queries (using raw query provided by user)
-  - Generate the query from the type AST
