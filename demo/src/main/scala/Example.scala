@@ -1,6 +1,5 @@
 
 import com.datastax.driver.core.{Cluster, Session}
-import shapeless._
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
