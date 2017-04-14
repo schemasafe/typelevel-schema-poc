@@ -9,6 +9,8 @@ You write your code using CQL strings
 Using Macros, the CQL strings above gets expanded into:
 ![generated code](read-me-pic-2.png)
 
+# Demo
+[See it working here](demo/src/main/scala/Example.scala), you'll need running Cassandra to run the demo, but it compiles without connecting it.
 # How this works?
 Type level programming...
 TODO: Explain basic type classes
