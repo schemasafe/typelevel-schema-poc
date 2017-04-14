@@ -21,6 +21,8 @@ object QueryParser {
   import fastparse.all._
 
   def parseQuery(input: String): Either[String, Type] = {
+    val Whitespace = NamedFunction(" \r\n\t".contains(_: Char), "Whitespace")
+    val space = P( CharsWhile(Whitespace).? )
     val identifier = P(CharIn('a' to 'z', 'A' to 'Z', '0' to '9', "_").rep.!).map(TypeHelpers.literal)
 
     val eqRelation = P(identifier.! ~ " = " ~ "?").map(TypeHelpers.eqRelationType)
@@ -28,10 +30,17 @@ object QueryParser {
     val relation = P(eqRelation | containReltation)
 
     val columns = P(identifier.rep(sep=", "))
-    val from = P(IgnoreCase(" FROM ") ~ identifier)
-    val where = P(IgnoreCase(" WHERE ") ~ relation.rep(sep=IgnoreCase(" AND ")))
+    val from = P(IgnoreCase("FROM ") ~ identifier)
+    val where = P(IgnoreCase("WHERE ") ~ relation.rep(sep=IgnoreCase(" AND ")))
 
-    val selectParser = P( IgnoreCase("SELECT ") ~ columns ~ from ~ where).map((TypeHelpers.selectStatmentType _).tupled)
+    val selectParser = P(
+      space ~
+      IgnoreCase("SELECT") ~ space ~
+      space ~ space ~
+      columns ~ space ~
+      from ~ space ~
+      where ~ space
+    ).map((TypeHelpers.selectStatmentType _).tupled)
 
     val parseInput = selectParser.parse(input)
     parseInput match {
