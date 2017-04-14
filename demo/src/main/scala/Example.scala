@@ -5,7 +5,7 @@ import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 
-import troy.typelevel._
+import troy.api._
 
 case class Post(
   authorName: String,
@@ -22,21 +22,20 @@ object PostService {
   }
 }
 
-// TODO: This should use the macro based Schema parser
-object Schema {
-  implicit val fact1 = TableExists.instance["posts"]
-  implicit val fact2 = ColumnHasType.instance["posts", "author_name", ColumnType.Text]
-  implicit val fact3 = ColumnHasType.instance["posts", "post_id", ColumnType.Int]
-  implicit val fact4 = ColumnHasType.instance["posts", "reviewer_name", ColumnType.Text]
-  implicit val fact5 = ColumnHasType.instance["posts", "post_title", ColumnType.Text]
-  implicit val fact6 = ColumnHasType.instance["posts", "post_rating", ColumnType.Int]
-  implicit val fact7 = ColumnHasType.instance["posts", "post_tags", ColumnType.List[ColumnType.Text]]
-}
-
+@schema object Schema extends SchemaFromString("""
+  CREATE TABLE posts (
+    author_name text,
+    post_id int,
+    post_rating int,
+    post_tags list<text>,
+    post_title text,
+    reviewer_name text,
+    PRIMARY KEY (author_name, post_id)
+  );
+  """)
 
 class PostService(implicit session: Session) {
   import Schema._
-  import troy.api._
 
   @schemasafe val listByAuthor = query[PostService.Queries.Get, Post](
     "SELECT author_name, post_id, reviewer_name, post_title, post_rating, post_tags FROM posts WHERE author_name = ? AND post_id = ?"
@@ -61,3 +60,5 @@ object Example extends App {
   session.close()
   cluster.close()
 }
+
+//INSERT INTO test.posts ( author_name, post_id, reviewer_name, post_title, post_rating, post_tags ) VALUES ( 'Tam', 1, 'rev', 'title', 5, ['scala', 'troy']) ;

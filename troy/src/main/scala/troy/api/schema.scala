@@ -18,18 +18,22 @@ package troy.api
 import scala.meta._
 import troy.parsers.Schema
 
+
+class SchemaFromString(schema: String)
+
 class schema extends scala.annotation.StaticAnnotation {
   inline def apply(defn: Any): Any = meta {
+    def log[T](t: T): T = { println(t); t}
     defn match {
-      case q"..$mods val ${term: Pat.Var.Term}: $tpeopt = ${Lit(rawSchema: String)}" =>
+      case q"..$mods object $name extends SchemaFromString(${Lit(rawSchema: String)})" =>
         val facts = Schema.parseToTypelevel(rawSchema).right.get.to[scala.collection.immutable.Seq]
 
-        q"""..$mods val $term: $tpeopt = new {
+        log(q"""..$mods object $name {
           import _root_.troy.typelevel._
           import _root_.shapeless._
 
           ..$facts
-        }"""
+        }""")
       case _ =>
         abort(???, "")
     }

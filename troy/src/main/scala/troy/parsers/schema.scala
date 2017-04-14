@@ -22,13 +22,12 @@ case class Table(columns: Map[String, ColumnType]) extends AnyVal
 case class NamedFunction[T, V](f: T => V, name: String) extends (T => V){
   def apply(t: T) = f(t)
   override def toString() = name
-
 }
 
 object SchemaParser {
   import fastparse.all._
 
-  val Whitespace = NamedFunction(" \r\n".contains(_: Char), "Whitespace")
+  val Whitespace = NamedFunction(" \r\n\t".contains(_: Char), "Whitespace")
   val space = P( CharsWhile(Whitespace).? )
 
   val identifier = P(CharIn('a' to 'z', 'A' to 'Z', '0' to '9', "_").rep.! ~ space)
@@ -43,12 +42,25 @@ object SchemaParser {
   val column = P(identifier ~ columnType ~ "PRIMARY KEY".? )
 
   val coma = P("," ~ space)
-  val columns = P("(" ~ space ~ column.rep(sep=coma) ~ space ~ ")")
-    .map(_.toMap).map(Table)
+  val columns = P((column | primaryKey).rep(sep=coma, min=1)).map {_
+    .collect{
+      case (key: String, value: ColumnType) => key -> value
+    }
+    .toMap
+  }.map(Table.apply)
 
-  val table = P( IgnoreCase("CREATE TABLE ") ~ identifier ~ columns ~ ";")
+  val primaryKey = P("PRIMARY" ~/ space ~ "KEY" ~/ space ~ "(" ~/ identifier.rep(sep=coma, min=1) ~ ")").map(_ => ())
 
-  val schema = P(table.rep(sep=space)).map(_.toMap).map(Schema.apply)
+  val table = P(
+    IgnoreCase("CREATE TABLE") ~ space ~
+    identifier ~
+    "(" ~ space ~
+    columns ~ space ~
+    primaryKey.? ~
+    ")" ~ space ~ ";"
+  )
+
+  val schema = P(space ~ table.rep(sep=space, min=1) ~ space ~ End).map(_.toMap).map(Schema.apply)
 
   def parse(input: String): Either[String, Schema] = {
     val parseInput = schema.parse(input)
@@ -65,7 +77,11 @@ final case class TableExistsFact(table: String) extends Fact
 final case class ColumnHasTypeFact(table: String, column: String, ctype: ColumnType) extends Fact
 
 object SchemaFactsGenerator {
-  def generate(schema: Schema): Seq[Fact] = ???
+  def generate(schema: Schema): Seq[Fact] =
+    schema.tables.keys.map(TableExistsFact).to[Seq] ++ (for {
+      (tableName, table) <- schema.tables
+      (columnName, columnType) <- table.columns
+    } yield ColumnHasTypeFact(tableName, columnName, columnType))
 }
 
 object Schema {

@@ -91,7 +91,7 @@ object TroyCodec {
 
   implicit val intAsInt = instance[ColumnType.Int, Int](_.getInt(_), _.setInt(_, _))
   implicit val intAsInteger = wrapper[ColumnType.Int, Integer](TypeCodec.cint)
-  implicit val textAsString = wrapper[ColumnType.Text, String](TypeCodec.ascii())
+  implicit val textAsString = wrapper[ColumnType.Text, String](TypeCodec.varchar())
 
   implicit def listAsJList[C <: ColumnType.Native, S](implicit itemCodec: TroyCodecWrapper[C, S]) =
     wrapper[ColumnType.List[C], java.util.List[S]](TypeCodec.list(itemCodec.codec))
