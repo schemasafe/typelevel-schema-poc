@@ -26,7 +26,10 @@ class schema extends scala.annotation.StaticAnnotation {
     def log[T](t: T): T = { println(t); t}
     defn match {
       case q"..$mods object $name extends SchemaFromString(${Lit(rawSchema: String)})" =>
-        val facts = Schema.parseToTypelevel(rawSchema).right.get.to[scala.collection.immutable.Seq]
+        val facts = Schema.parseToTypelevel(rawSchema) match {
+          case Right(f) => f.to[scala.collection.immutable.Seq]
+          case Left(e) => abort(e)
+        }
 
         log(q"""..$mods object $name {
           import _root_.troy.typelevel._
@@ -35,7 +38,7 @@ class schema extends scala.annotation.StaticAnnotation {
           ..$facts
         }""")
       case _ =>
-        abort(???, "")
+        abort("Annotation doesn't support this")
     }
   }
 }

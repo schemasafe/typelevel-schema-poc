@@ -36,6 +36,8 @@ object PostService {
 class PostService(implicit session: Session) {
   import Schema._
 
+  // Try changing the table name below
+  // or change any of the columns names
   @schemasafe val listByAuthor = query[PostService.Queries.Get, Post](
     "SELECT author_name, post_id, reviewer_name, post_title, post_rating, post_tags FROM posts WHERE author_name = ? AND post_id = ?"
   )

@@ -22,7 +22,10 @@ class schemasafe extends scala.annotation.StaticAnnotation {
   inline def apply(defn: Any): Any = meta {
     defn match {
       case q"..$mods val ${term: Pat.Var.Term}: $tpeopt = query[$i, $o](${Lit(rawQuery: String)})" =>
-        val s = QueryParser.parseQuery(rawQuery).right.get
+        val s = QueryParser.parseQuery(rawQuery) match {
+          case Right(s) => s
+          case Left(e) => abort(e)
+        }
 
         q"""..$mods val $term: $tpeopt = {
           import _root_.troy.typelevel._
@@ -31,7 +34,7 @@ class schemasafe extends scala.annotation.StaticAnnotation {
           Query.select[$i, $o, $s]($rawQuery)
         }"""
       case _ =>
-        abort(???, "")
+        abort("Annotation doesn't support this")
     }
   }
 }

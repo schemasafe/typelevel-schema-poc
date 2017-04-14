@@ -84,7 +84,7 @@ object SelectionTypeResolver extends SelectionTypeResolverLowPriorityImplicits {
   ) = instance[T, HHead :: HTail, Success[hConsType.T :: HTailColumnTypes]]
 }
 
-trait SelectionTypeResolverLowPriorityImplicits {
+trait SelectionTypeResolverLowPriorityImplicits extends SelectionTypeResolverLowerPriorityImplicits {
   import SelectionTypeResolver.{instance, Aux}
 
   implicit def hConsInstanceFailure[T <: String, HHead <: String, HTail <: HList, HTailColumnTypes <: HList](
@@ -98,11 +98,14 @@ trait SelectionTypeResolverLowPriorityImplicits {
     tableExists: DoesTableExists.Aux[T, Success[Unit]],
     hTail: Aux[T, HTail, Failure[E]],
   ) = instance[T, HHead :: HTail, Failure[E]]
+}
 
-  implicit def hNilInstanceFailure[T <: String](implicit tableDoesNotExist: DoesTableExists.Aux[T, Failure[TableDoesNotExist[T]]]) =
-    instance[T, HNil, Failure[TableDoesNotExist[T]]]
+trait SelectionTypeResolverLowerPriorityImplicits {
+  import SelectionTypeResolver.{instance, Aux}
 
-  // implicit def hConsInstance[T <: String : DoesTableExists, C <: String : DoesColumnExists, ] = instance[T, HNil, HNil]
+  implicit def tableDoesntExistFailure[T <: String, S <: HList](
+    implicit tableExists: DoesTableExists.Aux[T, Failure[TableDoesNotExist[T]]]
+  ) = instance[T, S, Failure[TableDoesNotExist[T]]]
 }
 
 trait BindMarkerTypesResolver[T <: String, Relations <: HList /* of Relation[_] */] {
@@ -147,7 +150,7 @@ object BindMarkerTypesResolver extends BindMarkerTypesResolverLowPriorityImplici
   ) = instance[T, Relation[HHeadColumnName, Operator.Equals] :: HTail, Failure[CollectionColumnDoesNotSupportEqualsOperator[T, HHeadColumnName]]]
 }
 
-trait BindMarkerTypesResolverLowPriorityImplicits {
+trait BindMarkerTypesResolverLowPriorityImplicits extends BindMarkerTypesResolverLowerPriorityImplicits {
   import BindMarkerTypesResolver.{instance, Aux}
 
   implicit def hConsColumnNotFoundInstanceFailure[T <: String, HHeadColumnName <: String, Op <: Operator, HTail <: HList, HTailColumnTypes <: HList](
@@ -168,9 +171,12 @@ trait BindMarkerTypesResolverLowPriorityImplicits {
     hConsType: ColumnHasType.Aux[T, HHeadColumnName, HHeadColumnType],
     hTail: Aux[T, HTail, Failure[E]],
   ) = instance[T, Relation[HHeadColumnName, Operator.Equals] :: HTail, Failure[E]]
+}
 
-  implicit def hNilInstanceFailure[T <: String](implicit tableDoesNotExist: DoesTableExists.Aux[T, Failure[TableDoesNotExist[T]]]) =
-    instance[T, HNil, Failure[TableDoesNotExist[T]]]
-
-  // implicit def hConsInstance[T <: String : DoesTableExists, C <: String : DoesColumnExists, ] = instance[T, HNil, HNil]
+trait BindMarkerTypesResolverLowerPriorityImplicits {
+  import BindMarkerTypesResolver.{instance, Aux}
+  
+  implicit def tableDoesntExistFailure[T <: String, S <: HList](
+    implicit tableExists: DoesTableExists.Aux[T, Failure[TableDoesNotExist[T]]]
+  ) = instance[T, S, Failure[TableDoesNotExist[T]]]
 }

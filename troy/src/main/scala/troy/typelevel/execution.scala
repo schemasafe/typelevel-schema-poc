@@ -15,10 +15,12 @@
  */
 package troy.typelevel
 
+import scala.annotation.implicitNotFound
 import scala.collection.JavaConverters._
 import com.datastax.driver.core._
 import shapeless._
 
+@implicitNotFound("Bind Markers are not compatible with Input structure")
 trait StatementBinder[GenericInput <: HList, BindMarkerTypes <: HList] {
   def bind(statement: BoundStatement, input: GenericInput, index: Int): BoundStatement
 
@@ -44,7 +46,7 @@ object StatementBinder {
 
 }
 
-
+@implicitNotFound("Row is not compatible with Output structure")
 trait RowParser[GenericOutput <: HList, SelectionTypes <: HList] {
   def parse(row: Row): GenericOutput = parse(row, 0)
   def parse(row: Row, index: Int): GenericOutput
