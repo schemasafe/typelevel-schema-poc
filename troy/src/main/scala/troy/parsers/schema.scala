@@ -99,9 +99,9 @@ object Schema {
       .zipWithIndex
       .map {
         case (TableExistsFact(table), i) =>
-          constructFact(i, q"TableExists.instance[${literal(table)}]")
+          constructFact(i, q"facts.tableExists[${literal(table)}]")
         case (ColumnHasTypeFact(table, column, ctype), i) =>
-          constructFact(i, q"ColumnHasType.instance[${literal(table)}, ${literal(column)}, ${ctname(ctype)}]")
+          constructFact(i, q"facts.columnHasType[${literal(table)}, ${literal(column)}, ${ctname(ctype)}]")
       }
     )
 

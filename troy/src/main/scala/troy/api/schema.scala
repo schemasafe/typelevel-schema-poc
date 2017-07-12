@@ -33,8 +33,6 @@ class schema extends scala.annotation.StaticAnnotation {
 
         log(q"""..$mods object $name {
           import _root_.troy.typelevel._
-          import _root_.shapeless._
-
           ..$facts
         }""")
       case _ =>
