@@ -28,7 +28,8 @@ lazy val troy = project.settings(
     "org.scala-lang" % "scala-reflect" % "2.12.1",
     "com.datastax.cassandra" % "cassandra-driver-core" % "3.0.0",
     "com.lihaoyi" %% "fastparse" % "0.4.2",
-    "org.scalameta" %% "scalameta" % "1.6.0"
+    "org.scalameta" %% "scalameta" % "1.6.0",
+    "eu.timepit" %% "singleton-ops" % "0.2.2"
   )
 )
 
