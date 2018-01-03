@@ -62,29 +62,6 @@ trait TypedQuery[LQ <: XString, I, O, S <: Option[XInt], W, E] {
   def outputDecoder: W => Either[E, O]
 }
 
-/**
-  * 1. Parse the query (via macro)
-  * 2. Schema Check (find Schema types of Input & Output)
-  * 3. Pair with Codecs
-  */
-trait TypedQueryMaterializer[LQ <: XString, I, O] {
-  type W // Wire Format (Array[Bytes] or similar)
-  type E // Error type in case encoder failed (usually Exception or String)
-  type Result <: XResult[_]
-  def result: Result
-}
-object TypedQueryMaterializer {
-  type Aux[LQ <: XString, I, O, R <: XResult[_]] = TypedQueryMaterializer[LQ, I, O] {
-    type Result = R
-  }
-
-  def instance[LQ <: XString, I, O, R <: XResult[TypedQuery[LQ, I, O, _, _, _]]](res: R): Aux[LQ, I, O, R] =
-    new TypedQueryMaterializer[LQ, I, O] {
-      override type Result = R
-      override def result: Result = res
-    }
-}
-
 
 object utils {
   type XResult[+T] = Either[XString, T]
