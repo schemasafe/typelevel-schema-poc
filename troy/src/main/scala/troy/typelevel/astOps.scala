@@ -17,18 +17,19 @@
  package troy.typelevel
 
 import shapeless.HList
+import singleton.ops.XString
 
 trait GetTableName[S <: DataManipulationStatement] {
-  type Out <: String
+  type Out <: XString
 }
 object GetTableName {
-  type Aux[S <: DataManipulationStatement, T <: String] =
+  type Aux[S <: DataManipulationStatement, T <: XString] =
     GetTableName[S] { type Out = T }
 
-  def instance[S <: DataManipulationStatement, T <: String]: Aux[S, T] =
+  def instance[S <: DataManipulationStatement, T <: XString]: Aux[S, T] =
     new GetTableName[S] { override type Out = T }
 
-  implicit def select[Selection <: HList, Table <: String, Relations <: HList] = instance[
+  implicit def select[Selection <: HList, Table <: XString, Relations <: HList] = instance[
     SelectStatement[Selection, Table, Relations],
     Table
   ]
@@ -44,7 +45,7 @@ object GetSelection {
   def instance[S <: DataManipulationStatement, O <: HList]: Aux[S, O] =
     new GetSelection[S] { override type Out = O }
 
-  implicit def select[Selection <: HList, Table <: String, Relations <: HList] = instance[
+  implicit def select[Selection <: HList, Table <: XString, Relations <: HList] = instance[
     SelectStatement[Selection, Table, Relations],
     Selection
   ]
@@ -60,7 +61,7 @@ object GetRelations {
   def instance[S <: DataManipulationStatement, O <: HList]: Aux[S, O] =
     new GetRelations[S] { override type Out = O }
 
-  implicit def select[Selection <: HList, Table <: String, Relations <: HList] = instance[
+  implicit def select[Selection <: HList, Table <: XString, Relations <: HList] = instance[
     SelectStatement[Selection, Table, Relations],
     Relations
   ]

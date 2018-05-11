@@ -19,64 +19,66 @@
 import scala.annotation.implicitNotFound
 
 import shapeless._
+import Error._
+import singleton.ops.XString
 
 @implicitNotFound("Bug alert: DoesTableExists[${T}] was supposed to be auto-derived.")
-trait DoesTableExists[T <: String] {
+trait DoesTableExists[T <: XString] {
   // Success[Unit] -> exists
   // Error -> Doesn't exist
   type Out <: Result[TableDoesNotExist[T], Unit]
 }
 
 object DoesTableExists extends DoesTableExistsLowerPriorityImplicits {
-  type Aux[T <: String, O <: Result[TableDoesNotExist[T], Unit]] = DoesTableExists[T] { type Out = O }
+  type Aux[T <: XString, O <: Result[TableDoesNotExist[T], Unit]] = DoesTableExists[T] { type Out = O }
 
-  def instance[T <: String, O <: Result[TableDoesNotExist[T], Unit]]: Aux[T, O] =
+  def instance[T <: XString, O <: Result[TableDoesNotExist[T], Unit]]: Aux[T, O] =
     new DoesTableExists[T] { override type Out = O }
 
-  implicit def existsIfTableExistsDefined[T <: String](implicit te: TableExists[T]) =
+  implicit def existsIfTableExistsDefined[T <: XString](implicit te: TableExists[T]) =
     instance[T, Success[Unit]]
 }
 trait DoesTableExistsLowerPriorityImplicits {
-  implicit def doesNotExistsIfTableExistsNotDefined[T <: String] =
+  implicit def doesNotExistsIfTableExistsNotDefined[T <: XString] =
     DoesTableExists.instance[T, Failure[TableDoesNotExist[T]]]
 }
 
 @implicitNotFound("Bug alert: DoesColumnExists[${T}] was supposed to be auto-derived.")
-trait DoesColumnExists[T <: String, C <: String] {
+trait DoesColumnExists[T <: XString, C <: XString] {
   // Success[Unit] -> exists
   // Error -> Doesn't exist
   type Out <: Result[ColumnDoesNotExist[T, C], Unit]
 }
 
 object DoesColumnExists extends DoesColumnExistsLowerPriorityImplicits {
-  type Aux[T <: String, C <: String, O <: Result[ColumnDoesNotExist[T, C], Unit]] = DoesColumnExists[T, C] { type Out = O }
+  type Aux[T <: XString, C <: XString, O <: Result[ColumnDoesNotExist[T, C], Unit]] = DoesColumnExists[T, C] { type Out = O }
 
-  def instance[T <: String, C <: String, O <: Result[ColumnDoesNotExist[T, C], Unit]]: Aux[T, C, O] =
+  def instance[T <: XString, C <: XString, O <: Result[ColumnDoesNotExist[T, C], Unit]]: Aux[T, C, O] =
     new DoesColumnExists[T, C] { override type Out = O }
 
-  implicit def existsIfColumnExistsDefined[T <: String, C <: String](implicit cht: ColumnHasType[T, C]) =
+  implicit def existsIfColumnExistsDefined[T <: XString, C <: XString](implicit cht: ColumnHasType[T, C]) =
     instance[T, C, Success[Unit]]
 }
 trait DoesColumnExistsLowerPriorityImplicits {
-  implicit def doesNotExistsIfColumnExistsNotDefined[T <: String, C <: String] =
+  implicit def doesNotExistsIfColumnExistsNotDefined[T <: XString, C <: XString] =
     DoesColumnExists.instance[T, C, Failure[ColumnDoesNotExist[T, C]]]
 }
 
 
-trait SelectionTypeResolver[T <: String, Selection <: HList] {
+trait SelectionTypeResolver[T <: XString, Selection <: HList] {
   type Out <: Result[_, HList] // HList of ColumnType
 }
 object SelectionTypeResolver extends SelectionTypeResolverLowPriorityImplicits {
   @implicitNotFound("Bug alert: SelectionTypeResolver.Aux[${T}, ${S}, ${O}] was supposed to be auto-derived.")
-  type Aux[T <: String, S <: HList, O <: Result[_, HList]] = SelectionTypeResolver[T, S] { type Out = O }
+  type Aux[T <: XString, S <: HList, O <: Result[_, HList]] = SelectionTypeResolver[T, S] { type Out = O }
 
-  def instance[T <: String, S <: HList, O <: Result[_, HList]]: Aux[T, S, O] =
+  def instance[T <: XString, S <: HList, O <: Result[_, HList]]: Aux[T, S, O] =
     new SelectionTypeResolver[T, S] { override type Out = O }
 
-  implicit def hNilInstanceSuccess[T <: String](implicit tableExists: DoesTableExists.Aux[T, Success[Unit]]) =
+  implicit def hNilInstanceSuccess[T <: XString](implicit tableExists: DoesTableExists.Aux[T, Success[Unit]]) =
     instance[T, HNil, Success[HNil]]
 
-  implicit def hConsInstanceSuccess[T <: String, HHead <: String, HTail <: HList, HTailColumnTypes <: HList](
+  implicit def hConsInstanceSuccess[T <: XString, HHead <: XString, HTail <: HList, HTailColumnTypes <: HList](
     implicit
     tableExists: DoesTableExists.Aux[T, Success[Unit]],
     hConsType: ColumnHasType[T, HHead],
@@ -87,13 +89,13 @@ object SelectionTypeResolver extends SelectionTypeResolverLowPriorityImplicits {
 trait SelectionTypeResolverLowPriorityImplicits extends SelectionTypeResolverLowerPriorityImplicits {
   import SelectionTypeResolver.{instance, Aux}
 
-  implicit def hConsInstanceFailure[T <: String, HHead <: String, HTail <: HList, HTailColumnTypes <: HList](
+  implicit def hConsInstanceFailure[T <: XString, HHead <: XString, HTail <: HList, HTailColumnTypes <: HList](
     implicit
     tableExists: DoesTableExists.Aux[T, Success[Unit]],
     hTail: Aux[T, HTail, Success[HTailColumnTypes]],
   ) = instance[T, HHead :: HTail, Failure[ColumnDoesNotExist[T, HHead]]]
 
-  implicit def hConsPropagateTailFailure[T <: String, HHead <: String, HTail <: HList, E <: Error[_]](
+  implicit def hConsPropagateTailFailure[T <: XString, HHead <: XString, HTail <: HList, E <: Msg[_]](
     implicit
     tableExists: DoesTableExists.Aux[T, Success[Unit]],
     hTail: Aux[T, HTail, Failure[E]],
@@ -103,46 +105,46 @@ trait SelectionTypeResolverLowPriorityImplicits extends SelectionTypeResolverLow
 trait SelectionTypeResolverLowerPriorityImplicits {
   import SelectionTypeResolver.{instance, Aux}
 
-  implicit def tableDoesntExistFailure[T <: String, S <: HList](
+  implicit def tableDoesntExistFailure[T <: XString, S <: HList](
     implicit tableExists: DoesTableExists.Aux[T, Failure[TableDoesNotExist[T]]]
   ) = instance[T, S, Failure[TableDoesNotExist[T]]]
 }
 
-trait BindMarkerTypesResolver[T <: String, Relations <: HList /* of Relation[_] */] {
+trait BindMarkerTypesResolver[T <: XString, Relations <: HList /* of Relation[_] */] {
   type Out <: Result[_, HList] // HList of ColumnType
 }
 object BindMarkerTypesResolver extends BindMarkerTypesResolverLowPriorityImplicits {
   @implicitNotFound("Bug alert: BindMarkerTypesResolver.Aux[${T}, ${Rs}, ${O}] was supposed to be auto-derived.")
-  type Aux[T <: String, Rs <: HList, O <: Result[_, HList]] = BindMarkerTypesResolver[T, Rs] { type Out = O }
+  type Aux[T <: XString, Rs <: HList, O <: Result[_, HList]] = BindMarkerTypesResolver[T, Rs] { type Out = O }
 
-  def instance[T <: String, Rs <: HList, O <: Result[_, HList]]: Aux[T, Rs, O] =
+  def instance[T <: XString, Rs <: HList, O <: Result[_, HList]]: Aux[T, Rs, O] =
     new BindMarkerTypesResolver[T, Rs] { override type Out = O }
 
-  implicit def hNilInstanceSuccess[T <: String](implicit tableExists: DoesTableExists.Aux[T, Success[Unit]]) =
+  implicit def hNilInstanceSuccess[T <: XString](implicit tableExists: DoesTableExists.Aux[T, Success[Unit]]) =
     instance[T, HNil, Success[HNil]]
 
-  implicit def hConsNativeInstanceSuccess[T <: String, HHeadColumnName <: String, HHeadColumnType <: ColumnType.Native, HTail <: HList, HTailColumnTypes <: HList](
+  implicit def hConsNativeInstanceSuccess[T <: XString, HHeadColumnName <: XString, HHeadColumnType <: ColumnType.Native, HTail <: HList, HTailColumnTypes <: HList](
     implicit
     tableExists: DoesTableExists.Aux[T, Success[Unit]],
     hConsType: ColumnHasType.Aux[T, HHeadColumnName, HHeadColumnType],
     hTail: Aux[T, HTail, Success[HTailColumnTypes]],
   ) = instance[T, Relation[HHeadColumnName, Operator.Equals] :: HTail, Success[HHeadColumnType :: HTailColumnTypes]]
 
-  implicit def hConsListInstanceSuccess[T <: String, HHeadColumnName <: String, HHeadListTypeParam <: ColumnType.Native, HTail <: HList, HTailColumnTypes <: HList](
+  implicit def hConsListInstanceSuccess[T <: XString, HHeadColumnName <: XString, HHeadListTypeParam <: ColumnType.Native, HTail <: HList, HTailColumnTypes <: HList](
     implicit
     tableExists: DoesTableExists.Aux[T, Success[Unit]],
     hConsType: ColumnHasType.Aux[T, HHeadColumnName, ColumnType.List[HHeadListTypeParam]],
     hTail: Aux[T, HTail, Success[HTailColumnTypes]],
   ) = instance[T, Relation[HHeadColumnName, Operator.Contains] :: HTail, Success[HHeadListTypeParam :: HTailColumnTypes]]
 
-  implicit def hConsNativeContainsInstanceFailure[T <: String, HHeadColumnName <: String, HHeadColumnType <: ColumnType.Native, HTail <: HList, HTailColumnTypes <: HList](
+  implicit def hConsNativeContainsInstanceFailure[T <: XString, HHeadColumnName <: XString, HHeadColumnType <: ColumnType.Native, HTail <: HList, HTailColumnTypes <: HList](
     implicit
     tableExists: DoesTableExists.Aux[T, Success[Unit]],
     hConsType: ColumnHasType.Aux[T, HHeadColumnName, HHeadColumnType],
     hTail: Aux[T, HTail, Success[HTailColumnTypes]],
   ) = instance[T, Relation[HHeadColumnName, Operator.Contains] :: HTail, Failure[NativeColumnDoesNotSupportContainsOperator[T, HHeadColumnName]]]
 
-  implicit def hConsListCollectionInstanceFailure[T <: String, HHeadColumnName <: String, HHeadListTypeParam <: ColumnType.Native, HTail <: HList, HTailColumnTypes <: HList](
+  implicit def hConsListCollectionInstanceFailure[T <: XString, HHeadColumnName <: XString, HHeadListTypeParam <: ColumnType.Native, HTail <: HList, HTailColumnTypes <: HList](
     implicit
     tableExists: DoesTableExists.Aux[T, Success[Unit]],
     hConsType: ColumnHasType.Aux[T, HHeadColumnName, ColumnType.List[HHeadListTypeParam]],
@@ -153,19 +155,19 @@ object BindMarkerTypesResolver extends BindMarkerTypesResolverLowPriorityImplici
 trait BindMarkerTypesResolverLowPriorityImplicits extends BindMarkerTypesResolverLowerPriorityImplicits {
   import BindMarkerTypesResolver.{instance, Aux}
 
-  implicit def hConsColumnNotFoundInstanceFailure[T <: String, HHeadColumnName <: String, Op <: Operator, HTail <: HList, HTailColumnTypes <: HList](
+  implicit def hConsColumnNotFoundInstanceFailure[T <: XString, HHeadColumnName <: XString, Op <: Operator, HTail <: HList, HTailColumnTypes <: HList](
     implicit
     tableExists: DoesTableExists.Aux[T, Success[Unit]],
     hTail: Aux[T, HTail, Success[HTailColumnTypes]],
   ) = instance[T, Relation[HHeadColumnName, Op] :: HTail, Failure[ColumnDoesNotExist[T, HHeadColumnName]]]
 
-  // implicit def hConsPropagateTailFailure[T <: String, HHead <: String, HTail <: HList, E <: Error[_]](
+  // implicit def hConsPropagateTailFailure[T <: XString, HHead <: XString, HTail <: HList, E <: Error[_]](
   //   implicit
   //   tableExists: DoesTableExists.Aux[T, Success[Unit]],
   //   hTail: Aux[T, HTail, Failure[E]],
   // ) = instance[T, HHead :: HTail, Failure[E]]
 
-  implicit def hConsNativePropagateTailFailure[T <: String, HHeadColumnName <: String, HHeadColumnType <: ColumnType.Native, HTail <: HList, E <: Error[_]](
+  implicit def hConsNativePropagateTailFailure[T <: XString, HHeadColumnName <: XString, HHeadColumnType <: ColumnType.Native, HTail <: HList, E <: Msg[_]](
     implicit
     tableExists: DoesTableExists.Aux[T, Success[Unit]],
     hConsType: ColumnHasType.Aux[T, HHeadColumnName, HHeadColumnType],
@@ -176,7 +178,7 @@ trait BindMarkerTypesResolverLowPriorityImplicits extends BindMarkerTypesResolve
 trait BindMarkerTypesResolverLowerPriorityImplicits {
   import BindMarkerTypesResolver.{instance, Aux}
   
-  implicit def tableDoesntExistFailure[T <: String, S <: HList](
+  implicit def tableDoesntExistFailure[T <: XString, S <: HList](
     implicit tableExists: DoesTableExists.Aux[T, Failure[TableDoesNotExist[T]]]
   ) = instance[T, S, Failure[TableDoesNotExist[T]]]
 }

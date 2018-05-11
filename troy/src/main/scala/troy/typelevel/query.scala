@@ -20,8 +20,9 @@ import com.datastax.driver.core.Session
 import scala.collection.JavaConverters._
 
 import shapeless._
-
 import scala.concurrent.{ExecutionContext, Future}
+
+import singleton.ops.XString
 
 trait Query[Input, Output] {
   def apply(input: Input)(implicit ec: ExecutionContext): Future[Iterable[Output]]
@@ -31,7 +32,7 @@ object Query {
   def select[Input, Output, Statement <: SelectStatement[_, _, _]] = new {
     def apply[
       Selection <: HList,
-      Table <: String,
+      Table <: XString,
       Relations <: HList,
       MaybeSelectionTypes <: Result[_, HList],
       SelectionTypes <: HList, // HList of ColumnType

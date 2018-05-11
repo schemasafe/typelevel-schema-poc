@@ -17,18 +17,19 @@
 package troy.typelevel
 
 import shapeless._
+import singleton.ops.XString
 
 sealed trait DataManipulationStatement
 
 // `select <Selection> from <Table> where <Relations>`
 sealed trait SelectStatement[
   Selection <: HList, // of Column Names encoded as literal-type strings
-  Table <: String, // table name, encoded as literal-type string
+  Table <: XString, // table name, encoded as literal-type string
   Relations <: HList // of Relations
 ] extends DataManipulationStatement
 
 // `<ColumnName> <Op> ?`, ex: `postId == ?`
-sealed trait Relation[ColumnName <: String, Op <: Operator]
+sealed trait Relation[ColumnName <: XString, Op <: Operator]
 
 sealed trait Operator
 object Operator {
